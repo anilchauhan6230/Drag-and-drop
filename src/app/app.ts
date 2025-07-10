@@ -1,12 +1,10 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { DragAndDrop } from './drag-and-drop/drag-and-drop';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [DragAndDrop],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
-export class App {
-  protected title = 'Drag-and-Drop';
-}
+export class App {}

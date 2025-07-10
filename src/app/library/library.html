@@ -1,0 +1,18 @@
+<div class="app-container">
+  <div class="sidebar">
+    <button (click)="addShape('square')">Add Square</button>
+    <button (click)="addShape('circle')">Add Circle</button>
+  </div>
+
+  <div class="canvas" id="canvas">
+    <div
+      *ngFor="let shape of shapes"
+      class="shape"
+      [ngClass]="shape.type"
+      [id]="shape.id"
+    >
+      {{ shape.type }}
+      <button class="close-btn" (click)="removeShape(shape.id)">×</button>
+    </div>
+  </div>
+</div>

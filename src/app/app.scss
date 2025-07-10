@@ -1,0 +1,73 @@
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 150px;
+  padding: 10px;
+  background: #f1f1f1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .drag-item {
+    width: 50px;
+    height: 50px;
+    cursor: grab;
+    border: 2px solid #333;
+
+    &.square {
+      background-color: lightblue;
+    }
+
+    &.rectangle {
+      background-color: lightgreen;
+      height: 30px;
+      width: 80px;
+    }
+
+    &.circle {
+      background-color: lightcoral;
+      border-radius: 50%;
+    }
+  }
+}
+
+.canvas {
+  flex: 1;
+  position: relative;
+  background-color: #fff;
+  border: 2px dashed #ccc;
+  margin: 10px;
+}
+
+.shape {
+  position: absolute;
+  cursor: move;
+  border: 2px solid #000;
+  box-sizing: border-box;
+
+  &.square {
+    background-color: lightblue;
+  }
+
+  &.rectangle {
+    background-color: lightgreen;
+  }
+
+  &.circle {
+    background-color: lightcoral;
+    border-radius: 50%;
+  }
+
+  .resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    background: #000;
+    cursor: se-resize;
+  }
+}

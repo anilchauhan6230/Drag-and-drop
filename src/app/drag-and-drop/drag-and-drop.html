@@ -1,0 +1,220 @@
+<div class="app-container">
+  <div class="sidebar">
+    <div
+      class="drag-item square"
+      draggable="true"
+      (dragstart)="onDragStart($event, 'square')"
+    ></div>
+    <div
+      class="drag-item rectangle"
+      draggable="true"
+      (dragstart)="onDragStart($event, 'rectangle')"
+    ></div>
+    <div
+      class="drag-item circle"
+      draggable="true"
+      (dragstart)="onDragStart($event, 'circle')"
+    ></div>
+    <div
+      class="drag-item elbow-arrow"
+      draggable="true"
+      (dragstart)="onDragStart($event, 'elbow-arrow')"
+    ></div>
+    <div
+      class="drag-item arc"
+      draggable="true"
+      (dragstart)="onDragStart($event, 'arc')"
+    ></div>
+
+    <div
+      class="drag-item line"
+      draggable="true"
+      (dragstart)="onDragStart($event, 'line')"
+    ></div>
+  </div>
+
+  <div
+    class="canvas"
+    (click)="deselectShape()"
+    (drop)="onDrop($event)"
+    (dragover)="onDragOver($event)"
+  >
+    <svg class="connection-layer">
+      <defs>
+        <marker
+          markerWidth="10"
+          markerHeight="7"
+          refX="10"
+          refY="3.5"
+          orient="auto"
+        >
+          <polygon points="0 0, 10 3.5, 0 7" fill="#9CA3AF" />
+        </marker>
+      </defs>
+
+      @for(item of droppedItems; track item) { @if(item.type === 'line') {
+      <path
+        [attr.id]="'line-path-' + item.id"
+        [attr.d]="getLinePath(item)"
+        stroke="#9CA3AF"
+        stroke-width="2"
+        fill="none"
+      />
+      <text fill="black" font-size="14" text-anchor="middle">
+        <textPath
+          [attr.href]="'#line-path-' + item.id"
+          startOffset="50%"
+          alignment-baseline="middle"
+        >
+          {{ item.text }}
+        </textPath>
+      </text>
+      }
+      <path
+        *ngIf="item.type === 'elbow-arrow'"
+        [attr.d]="item.path"
+        stroke="black"
+        fill="none"
+        marker-end="url(#arrowhead)"
+      >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="10"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="black" />
+          </marker>
+        </defs>
+      </path>
+      <path
+        *ngIf="item.type === 'arc'"
+        [attr.d]="item.path"
+        stroke="blue"
+        stroke-width="2"
+        fill="none"
+        marker-end="url(#arrowhead)"
+      >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="10"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="blue" />
+          </marker>
+        </defs>
+      </path>
+
+      }
+    </svg>
+
+    @for(item of droppedItems; track item; let i = $index) { @if(item.type !==
+    'line' && item.type !== 'elbow-arrow' && item.type !== 'arc') {
+    <div
+      class="shape"
+      [ngClass]="[item.type, item.isNew ? 'drop-animation' : '']"
+      [style.top.px]="item.top"
+      [style.left.px]="item.left"
+      [style.width.px]="item.width"
+      [style.height.px]="item.height"
+      draggable="true"
+      (dragstart)="onShapeDragStart($event, i)"
+      (click)="onShapeClick(i, $event)"
+      (mouseenter)="onShapeClick(i, $event)"
+    >
+      @if(selectedIndex === i) {
+      <div class="delete-icon" (click)="deleteShape(i, $event)">&#10006;</div>
+
+      <textarea
+        class="shape-text-input"
+        [(ngModel)]="item.text"
+        (click)="$event.stopPropagation()"
+        rows="3"
+      ></textarea>
+      }
+      <span *ngIf="selectedIndex !== i" class="shape-text"
+        >{{ item.text }}</span
+      >
+      <div *ngIf="selectedIndex === i">
+        <div
+          class="resize-handle top-left"
+          (mousedown)="startResize($event, i, 'top-left')"
+        ></div>
+        <div
+          class="resize-handle top-right"
+          (mousedown)="startResize($event, i, 'top-right')"
+        ></div>
+        <div
+          class="resize-handle bottom-left"
+          (mousedown)="startResize($event, i, 'bottom-left')"
+        ></div>
+        <div
+          class="resize-handle bottom-right"
+          (mousedown)="startResize($event, i, 'bottom-right')"
+        ></div>
+        <div
+          class="resize-handle top"
+          (mousedown)="startResize($event, i, 'top')"
+        ></div>
+        <div
+          class="resize-handle bottom"
+          (mousedown)="startResize($event, i, 'bottom')"
+        ></div>
+        <div
+          class="resize-handle left"
+          (mousedown)="startResize($event, i, 'left')"
+        ></div>
+        <div
+          class="resize-handle right"
+          (mousedown)="startResize($event, i, 'right')"
+        ></div>
+      </div>
+    </div>
+    } @else {
+    <div
+      class="line-overlay"
+      [ngClass]="[item.isNew ? 'drop-animation' : '']"
+      [style.top.px]="getLineOverlayStyle(item).top"
+      [style.left.px]="getLineOverlayStyle(item).left"
+      [style.width.px]="getLineOverlayStyle(item).width"
+      [style.height.px]="getLineOverlayStyle(item).height"
+      draggable="true"
+      (dragstart)="onShapeDragStart($event, i)"
+      (click)="onShapeClick(i, $event)"
+    >
+      <textarea
+        *ngIf="selectedIndex === i"
+        [(ngModel)]="item.text"
+        (click)="$event.stopPropagation()"
+        rows="1"
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          font-size: 12px;
+          width: 80px;
+        "
+      ></textarea>
+    </div>
+    <div
+      class="resize-handle1 left"
+      [style.top.px]="getLineCoordinates(item).y1 - 5"
+      [style.left.px]="getLineCoordinates(item).x1 - 5"
+      (mousedown)="startResize($event, i, 'left')"
+    ></div>
+    <div
+      class="resize-handle1 right"
+      [style.top.px]="getLineCoordinates(item).y2 - 5"
+      [style.left.px]="getLineCoordinates(item).x2 - 5"
+      (mousedown)="startResize($event, i, 'right')"
+    ></div>
+    } }
+  </div>
+</div>
