@@ -14,7 +14,6 @@ export interface DroppedItem {
   fromAnchorIndex?: number;
   toAnchorIndex?: number;
   text?: string;
-  editing?: boolean;
   isNew?: boolean;
   path?: string;
 }

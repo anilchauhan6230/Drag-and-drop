@@ -15,6 +15,25 @@ export class DragAndDrop {
   isDraggingExisting = false;
   selectedIndex: number | null = null;
   droppedItems: DroppedItem[] = [];
+  shapes: string[] = [
+    'square',
+    'rectangle',
+    'circle',
+    'elbow-arrow',
+    'arc',
+    'line',
+  ];
+  handles: string[] = [
+    'top-left',
+    'top-right',
+    'bottom-left',
+    'bottom-right',
+    'top',
+    'bottom',
+    'left',
+    'right',
+  ];
+  svgShapes: string[] = ['line', 'elbow-arrow', 'arc'];
 
   defaultSizes: Record<string, { width: number; height: number }> = {
     square: { width: 100, height: 100 },
@@ -24,24 +43,30 @@ export class DragAndDrop {
   };
 
   resizingIndex: number | null = null;
-  startX = 0;
-  startY = 0;
-  startWidth = 0;
-  startHeight = 0;
-  startTop = 0;
-  startLeft = 0;
+  startX: number = 0;
+  startY: number = 0;
+  startWidth: number = 0;
+  startHeight: number = 0;
+  startTop: number = 0;
+  startLeft: number = 0;
   resizeDirection: string = '';
-  startLineStartX = 0;
-  startLineStartY = 0;
-  startLineEndX = 0;
-  startLineEndY = 0;
+  startLineStartX: number = 0;
+  startLineStartY: number = 0;
+  startLineEndX: number = 0;
+  startLineEndY: number = 0;
+  isDragging = false;
+  isDraggingOverCanvas: boolean = false;
+  editingLineIndex: number | null = null;
 
-  onDragStart(event: DragEvent, shapeType: string) {
+  onDragStart(shapeType: string) {
     this.draggedShape = shapeType;
     this.isDraggingExisting = false;
   }
+  onDragEnd(shapeType: string) {
+    this.isDraggingExisting = true;
+  }
 
-  onShapeDragStart(event: DragEvent, index: number) {
+  onShapeDragStart(index: number) {
     this.draggedItemIndex = index;
     this.isDraggingExisting = true;
     this.draggedShape = this.droppedItems[index].type;
@@ -49,9 +74,12 @@ export class DragAndDrop {
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
+    this.isDraggingOverCanvas = true;
   }
 
   onDrop(event: DragEvent) {
+    console.log(event);
+    this.isDraggingOverCanvas = false;
     const canvas = (event.target as HTMLElement).closest('.canvas');
     if (!canvas) return;
 
@@ -61,18 +89,45 @@ export class DragAndDrop {
 
     const id = crypto.randomUUID();
 
-    // If dragging an existing shape within the canvas
     if (this.isDraggingExisting && this.draggedItemIndex !== null) {
       const movedItem = this.droppedItems[this.draggedItemIndex];
+      const prevX = movedItem.left ?? movedItem.startX ?? 0;
+      const prevY = movedItem.top ?? movedItem.startY ?? 0;
+
+      const dx = x - prevX;
+      const dy = y - prevY;
+
       movedItem.left = x;
       movedItem.top = y;
 
-      // Recalculate connected items
+      if (['line', 'elbow-arrow', 'arc'].includes(movedItem.type)) {
+        movedItem.startX! += dx;
+        movedItem.startY! += dy;
+        movedItem.endX! += dx;
+        movedItem.endY! += dy;
+
+        if (movedItem.type === 'elbow-arrow') {
+          movedItem.path = this.getElbowArrowPath(
+            movedItem.startX!,
+            movedItem.startY!,
+            movedItem.endX!,
+            movedItem.endY!
+          );
+        } else if (movedItem.type === 'arc') {
+          movedItem.path = this.getArcPath(
+            movedItem.startX!,
+            movedItem.startY!,
+            movedItem.endX!,
+            movedItem.endY!
+          );
+        }
+      }
+
       for (const item of this.droppedItems) {
         const connected =
           item.fromId === movedItem.id || item.toId === movedItem.id;
 
-        if (connected && ['line', 'elbow-arrow', 'arc'].includes(item.type)) {
+        if (connected && this.svgShapes.includes(item.type)) {
           const coords = this.getLineCoordinates(item);
 
           item.startX = coords.x1;
@@ -98,10 +153,10 @@ export class DragAndDrop {
         }
       }
 
-      // Force view update
+      this.droppedItems = [...this.droppedItems];
+      this.droppedItems = [...this.droppedItems];
       this.droppedItems = [...this.droppedItems];
     } else {
-      // New shape dropped from sidebar
       if (this.draggedShape === 'line') {
         const newLine: DroppedItem = {
           id,
@@ -201,6 +256,11 @@ export class DragAndDrop {
 
     this.draggedItemIndex = null;
     this.isDraggingExisting = false;
+
+    setTimeout(() => {
+      const dropped = this.droppedItems.find((i) => i.id === id);
+      if (dropped) dropped.isNew = false;
+    }, 500);
   }
 
   startResize(event: MouseEvent, index: number, direction: string) {
@@ -218,7 +278,7 @@ export class DragAndDrop {
     this.startTop = shape.top;
     this.startLeft = shape.left;
 
-    if (['line', 'elbow-arrow', 'arc'].includes(shape.type)) {
+    if (this.svgShapes.includes(shape.type)) {
       this.startLineStartX = shape.startX!;
       this.startLineStartY = shape.startY!;
       this.startLineEndX = shape.endX!;
@@ -235,7 +295,7 @@ export class DragAndDrop {
     const item = this.droppedItems[this.resizingIndex];
     item.isNew = false;
 
-    if (['line', 'elbow-arrow', 'arc'].includes(item.type)) {
+    if (this.svgShapes.includes(item.type)) {
       const dx = event.clientX - this.startX;
       const dy = event.clientY - this.startY;
 
@@ -453,7 +513,7 @@ export class DragAndDrop {
       { x: cx + offset, y: top }, // Top (above center)
       {
         x: cx + offset,
-        y: top + height + 3 * offset,
+        y: top + height + 2 * offset,
       }, // Bottom
       { x: left - offset, y: cy + offset }, // Left
       { x: left + width + 2 * offset, y: cy + 1 * offset }, // Right
@@ -522,8 +582,15 @@ export class DragAndDrop {
   }
 
   getElbowArrowPath(x1: number, y1: number, x2: number, y2: number): string {
-    const midX = (x1 + x2) / 2;
-    return `M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`;
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    if (dx >= dy) {
+      const midX = (x1 + x2) / 2;
+      return `M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`;
+    } else {
+      const midY = (y1 + y2) / 2;
+      return `M ${x1} ${y1} V ${midY} H ${x2} V ${y2}`;
+    }
   }
 
   getArcPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -533,7 +600,7 @@ export class DragAndDrop {
   }
 
   deleteShape(index: number, event: MouseEvent): void {
-    event.stopPropagation(); // Prevent triggering deselect
+    event.stopPropagation();
     this.droppedItems.splice(index, 1);
     this.selectedIndex = null;
   }
@@ -572,5 +639,13 @@ export class DragAndDrop {
       item.toId = undefined;
       item.toAnchorIndex = undefined;
     }
+  }
+
+  getLineMidPoint(item: DroppedItem) {
+    const { x1, y1, x2, y2 } = this.getLineCoordinates(item);
+    return {
+      x: (x1 + x2) / 2,
+      y: (y1 + y2) / 2,
+    };
   }
 }

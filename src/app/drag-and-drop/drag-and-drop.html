@@ -1,41 +1,20 @@
 <div class="app-container">
   <div class="sidebar">
+    @for(shape of shapes;track shape){
     <div
-      class="drag-item square"
+      class="drag-item"
+      [ngClass]="shape"
       draggable="true"
-      (dragstart)="onDragStart($event, 'square')"
+      (dragstart)="onDragStart(shape)"
+      (dragend)="onDragEnd(shape)"
     ></div>
-    <div
-      class="drag-item rectangle"
-      draggable="true"
-      (dragstart)="onDragStart($event, 'rectangle')"
-    ></div>
-    <div
-      class="drag-item circle"
-      draggable="true"
-      (dragstart)="onDragStart($event, 'circle')"
-    ></div>
-    <div
-      class="drag-item elbow-arrow"
-      draggable="true"
-      (dragstart)="onDragStart($event, 'elbow-arrow')"
-    ></div>
-    <div
-      class="drag-item arc"
-      draggable="true"
-      (dragstart)="onDragStart($event, 'arc')"
-    ></div>
-
-    <div
-      class="drag-item line"
-      draggable="true"
-      (dragstart)="onDragStart($event, 'line')"
-    ></div>
+    }
   </div>
 
   <div
     class="canvas"
     (click)="deselectShape()"
+    [ngClass]="{ 'drag-hover': isDraggingOverCanvas }"
     (drop)="onDrop($event)"
     (dragover)="onDragOver($event)"
   >
@@ -52,7 +31,8 @@
         </marker>
       </defs>
 
-      @for(item of droppedItems; track item) { @if(item.type === 'line') {
+      @for(item of droppedItems; track item;let i = $index){ @if(item.type ===
+      'line'){
       <path
         [attr.id]="'line-path-' + item.id"
         [attr.d]="getLinePath(item)"
@@ -60,63 +40,35 @@
         stroke-width="2"
         fill="none"
       />
-      <text fill="black" font-size="14" text-anchor="middle">
-        <textPath
-          [attr.href]="'#line-path-' + item.id"
-          startOffset="50%"
-          alignment-baseline="middle"
-        >
-          {{ item.text }}
-        </textPath>
-      </text>
-      }
+      }@else if(item.type === 'elbow-arrow'){
       <path
-        *ngIf="item.type === 'elbow-arrow'"
-        [attr.d]="item.path"
+        [attr.d]="getElbowArrowPath(getLineCoordinates(item).x1, getLineCoordinates(item).y1, getLineCoordinates(item).x2, getLineCoordinates(item).y2)"
         stroke="black"
         fill="none"
-        marker-end="url(#arrowhead)"
-      >
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="10"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="black" />
-          </marker>
-        </defs>
-      </path>
+      />
+      }@else if (item.type === 'arc') {
       <path
-        *ngIf="item.type === 'arc'"
-        [attr.d]="item.path"
+        [attr.d]="getArcPath(getLineCoordinates(item).x1, getLineCoordinates(item).y1, getLineCoordinates(item).x2, getLineCoordinates(item).y2)"
         stroke="blue"
         stroke-width="2"
         fill="none"
-        marker-end="url(#arrowhead)"
+      />
+      } @if(svgShapes.includes(item.type) && editingLineIndex !== i){
+      <text
+        [attr.x]="getLineMidPoint(item).x"
+        [attr.y]="getLineMidPoint(item).y - 10"
+        fill="black"
+        font-size="14"
+        text-anchor="middle"
+        alignment-baseline="middle"
       >
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="10"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="blue" />
-          </marker>
-        </defs>
-      </path>
-
-      }
+        {{ item.text }}
+      </text>
+      } }
     </svg>
 
-    @for(item of droppedItems; track item; let i = $index) { @if(item.type !==
-    'line' && item.type !== 'elbow-arrow' && item.type !== 'arc') {
+    @for(item of droppedItems;track item; let i = $index){
+    @if(!svgShapes.includes(item.type)){
     <div
       class="shape"
       [ngClass]="[item.type, item.isNew ? 'drop-animation' : '']"
@@ -125,59 +77,29 @@
       [style.width.px]="item.width"
       [style.height.px]="item.height"
       draggable="true"
-      (dragstart)="onShapeDragStart($event, i)"
+      (dragstart)="onShapeDragStart(i)"
       (click)="onShapeClick(i, $event)"
       (mouseenter)="onShapeClick(i, $event)"
     >
-      @if(selectedIndex === i) {
+      @if(selectedIndex === i){
       <div class="delete-icon" (click)="deleteShape(i, $event)">&#10006;</div>
-
       <textarea
         class="shape-text-input"
         [(ngModel)]="item.text"
         (click)="$event.stopPropagation()"
         rows="3"
       ></textarea>
+      @for( handle of handles; track handle){
+      <div
+        class="resize-handle"
+        [ngClass]="handle"
+        (mousedown)="startResize($event, i, handle)"
+      ></div>
+      } } @if(selectedIndex !== i){
+      <span class="shape-text">{{ item.text }}</span>
       }
-      <span *ngIf="selectedIndex !== i" class="shape-text"
-        >{{ item.text }}</span
-      >
-      <div *ngIf="selectedIndex === i">
-        <div
-          class="resize-handle top-left"
-          (mousedown)="startResize($event, i, 'top-left')"
-        ></div>
-        <div
-          class="resize-handle top-right"
-          (mousedown)="startResize($event, i, 'top-right')"
-        ></div>
-        <div
-          class="resize-handle bottom-left"
-          (mousedown)="startResize($event, i, 'bottom-left')"
-        ></div>
-        <div
-          class="resize-handle bottom-right"
-          (mousedown)="startResize($event, i, 'bottom-right')"
-        ></div>
-        <div
-          class="resize-handle top"
-          (mousedown)="startResize($event, i, 'top')"
-        ></div>
-        <div
-          class="resize-handle bottom"
-          (mousedown)="startResize($event, i, 'bottom')"
-        ></div>
-        <div
-          class="resize-handle left"
-          (mousedown)="startResize($event, i, 'left')"
-        ></div>
-        <div
-          class="resize-handle right"
-          (mousedown)="startResize($event, i, 'right')"
-        ></div>
-      </div>
     </div>
-    } @else {
+    } @if(svgShapes.includes(item.type)){
     <div
       class="line-overlay"
       [ngClass]="[item.isNew ? 'drop-animation' : '']"
@@ -186,7 +108,7 @@
       [style.width.px]="getLineOverlayStyle(item).width"
       [style.height.px]="getLineOverlayStyle(item).height"
       draggable="true"
-      (dragstart)="onShapeDragStart($event, i)"
+      (dragstart)="onShapeDragStart(i)"
       (click)="onShapeClick(i, $event)"
     >
       <textarea
@@ -194,23 +116,18 @@
         [(ngModel)]="item.text"
         (click)="$event.stopPropagation()"
         rows="1"
-        style="
-          position: absolute;
-          top: 0;
-          left: 0;
-          font-size: 12px;
-          width: 80px;
-        "
+        style="position: absolute; font-size: 12px; width: 80px"
       ></textarea>
     </div>
+
     <div
-      class="resize-handle1 left"
+      class="line-coordinate left"
       [style.top.px]="getLineCoordinates(item).y1 - 5"
       [style.left.px]="getLineCoordinates(item).x1 - 5"
       (mousedown)="startResize($event, i, 'left')"
     ></div>
     <div
-      class="resize-handle1 right"
+      class="line-coordinate right"
       [style.top.px]="getLineCoordinates(item).y2 - 5"
       [style.left.px]="getLineCoordinates(item).x2 - 5"
       (mousedown)="startResize($event, i, 'right')"
