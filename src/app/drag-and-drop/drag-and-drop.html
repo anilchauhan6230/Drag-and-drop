@@ -111,6 +111,13 @@
       (dragstart)="onShapeDragStart(i)"
       (click)="onShapeClick(i, $event)"
     >
+      <div
+        *ngIf="selectedIndex === i"
+        class="delete-icon"
+        (click)="deleteShape(i, $event)"
+      >
+        &#10006;
+      </div>
       <textarea
         *ngIf="selectedIndex === i"
         [(ngModel)]="item.text"

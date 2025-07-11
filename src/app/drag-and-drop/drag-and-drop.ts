@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { DroppedItem } from '../Models/dropped-item';
 import { FormsModule } from '@angular/forms';
+import { Drop } from '../Models/drop';
 
 @Component({
   selector: 'app-drag-and-drop',
@@ -33,6 +34,93 @@ export class DragAndDrop {
     'left',
     'right',
   ];
+
+  dropItems: Drop[] = [
+    {
+      id: '1',
+      description: 'circle',
+      nextId: '2',
+      shapeType: 'circle',
+      text: 'Start',
+    },
+    {
+      id: '2',
+      description: 'square',
+      nextId: '3',
+      shapeType: 'square',
+      text: 'Middle',
+    },
+    {
+      id: '3',
+      description: 'circle',
+      nextId: '4',
+      shapeType: 'circle',
+      text: 'End',
+    },
+  ];
+
+  ngOnInit() {
+    this.convertToGraph(this.dropItems);
+  }
+
+  convertToGraph(items: Drop[]) {
+    const shapeWidth = 100;
+    const shapeHeight = 60;
+    const gap = 150;
+
+    const shapeMap: { [key: string]: DroppedItem } = {};
+
+    items.forEach((item, index) => {
+      const top = 100;
+      const left = 100 + index * gap;
+
+      const shape: DroppedItem = {
+        id: item.id,
+        type: item.shapeType,
+        top,
+        left,
+        width: shapeWidth,
+        height: shapeHeight,
+        text: item.text,
+        startX: 0,
+        startY: 0,
+        endX: 0,
+        endY: 0,
+      };
+
+      this.droppedItems.push(shape);
+      shapeMap[item.id] = shape;
+    });
+
+    items.forEach((item) => {
+      if (item.nextId) {
+        const from = shapeMap[item.id];
+        const to = shapeMap[item.nextId];
+
+        if (from && to) {
+          const line: DroppedItem = {
+            id: crypto.randomUUID(),
+            type: 'line',
+            fromId: from.id,
+            toId: to.id,
+            startX: from.left! + shapeWidth / 2,
+            startY: from.top!,
+            endX: to.left! + shapeWidth / 2,
+            endY: to.top!,
+            text: item.text,
+            top: 0,
+            left: 0,
+            width: 0,
+            height: 0,
+          };
+          this.droppedItems.push(line);
+        }
+      }
+    });
+
+    console.log(this.droppedItems);
+  }
+
   svgShapes: string[] = ['line', 'elbow-arrow', 'arc'];
 
   defaultSizes: Record<string, { width: number; height: number }> = {
